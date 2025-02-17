@@ -17,19 +17,6 @@ YELLOW = '\033[93m'
 RESET = '\033[0m'
 
 # Load configuration
-
-# Load proxy settings
-PROXY_HTTP = config.get('proxy', 'http', fallback='')
-PROXY_HTTPS = config.get('proxy', 'https', fallback='')
-
-# Set proxy dictionary jika ada proxy yang diatur
-proxies = {}
-if PROXY_HTTP or PROXY_HTTPS:
-    proxies = {
-        'http': PROXY_HTTP if PROXY_HTTP else None,
-        'https': PROXY_HTTPS if PROXY_HTTPS else None
-    }
-
 config = configparser.ConfigParser()
 config.read('config.ini')
 
@@ -38,11 +25,22 @@ SLEEP_BETWEEN_ACCOUNTS = config.getint('settings', 'sleep_between_accounts', fal
 SLEEP_BETWEEN_RUNS = config.getint('settings', 'sleep_between_runs', fallback=8 * 3600)
 MAX_RETRIES = config.getint('settings', 'max_retries', fallback=3)
 
+# Load proxy settings from config.ini
+PROXY_HTTP = config.get('proxy', 'http', fallback=None)
+PROXY_HTTPS = config.get('proxy', 'https', fallback=None)
+
+# Set proxy dictionary if any proxy is set
+proxies = {}
+if PROXY_HTTP or PROXY_HTTPS:
+    proxies = {
+        'http': PROXY_HTTP,
+        'https': PROXY_HTTPS
+    }
 
 def post_request(url: str, headers: Dict[str, str], payload: Any = None, retries: int = 0) -> Tuple[Any, Any]:
     """Makes a POST request using cloudscraper."""
     try:
-        scraper = cloudscraper.create_(proxies=proxies, scraper()
+        scraper = cloudscraper.create_scraper(proxies=proxies)
         response = scraper.post(url, json=payload, headers=headers)
         response.raise_for_status()
         try:
@@ -62,7 +60,7 @@ def post_request(url: str, headers: Dict[str, str], payload: Any = None, retries
 def get_request(url: str, headers: Dict[str, str], retries: int = 0) -> Any:
     """Makes a GET request using cloudscraper."""
     try:
-        scraper = cloudscraper.create_(proxies=proxies, scraper()
+        scraper = cloudscraper.create_scraper(proxies=proxies)
         response = scraper.get(url, headers=headers)
         response.raise_for_status()
         try:
@@ -88,7 +86,7 @@ def read_init_data(filename: str) -> list[str]:
             return init_data_list
     except FileNotFoundError:
         logger.error(f"File {filename} not found.")
-        return []
+        return
 
 
 def get_streak_info(headers: Dict[str, str]):
@@ -221,7 +219,7 @@ def process_init_data(init_data: str):
     url_register = "https://api-tg-app.midas.app/api/auth/register"
     headers_register = {
         "Accept": "application/json, text/plain, */*",
-       # ...(rest of the headers)
+        #...(rest of the headers)
     }
 
     payload = {
@@ -240,7 +238,7 @@ def process_init_data(init_data: str):
 
         headers_user = {
             "Accept": "application/json, text/plain, */*",
-            # ... (rest of the user headers)
+            #... (rest of the user headers)
             "Authorization": f"Bearer {token}",
             "Cookie": "; ".join([f"{key}={value}" for key, value in cookies.get_dict().items()])
         }
